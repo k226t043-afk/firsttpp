@@ -1,1 +1,517 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コミック風ジョジョクイズ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 迫力のあるフォントを読み込み -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@800;900&family=Noto+Serif+JP:wght@900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --jojo-purple: #6a0dad;
+            --jojo-yellow: #ffd700;
+            --jojo-pink: #ff007f;
+            --jojo-cyan: #00e5ff;
+            --jojo-green: #39ff14;
+        }
 
+        body {
+            font-family: 'M PLUS 1p', sans-serif;
+            /* ハーフトーン（ドット）背景 */
+            background-color: var(--jojo-purple);
+            background-image: radial-gradient(#000 15%, transparent 16%), radial-gradient(#000 15%, transparent 16%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            color: #000;
+            overflow-x: hidden;
+        }
+
+        /* 集中線エフェクト */
+        .speed-lines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: repeating-conic-gradient(
+                from 0deg,
+                transparent 0deg 10deg,
+                rgba(255, 255, 255, 0.1) 10deg 11deg,
+                transparent 11deg 20deg
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ゴゴゴ文字 */
+        .gogogo {
+            position: fixed;
+            font-family: 'Noto Serif JP', serif;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.3);
+            font-size: 5rem;
+            transform: rotate(-15deg);
+            z-index: 0;
+            pointer-events: none;
+            text-shadow: 2px 2px 0 var(--jojo-yellow);
+        }
+        .gogo-1 { top: 10%; left: 5%; }
+        .gogo-2 { bottom: 15%; right: 10%; font-size: 7rem; }
+        .gogo-3 { top: 40%; right: 5%; }
+        .gogo-4 { bottom: 5%; left: 15%; font-size: 4rem; }
+
+        /* コミック風コンテナ */
+        .comic-box {
+            background-color: #fff;
+            border: 6px solid #000;
+            box-shadow: 12px 12px 0px #000;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* コミック風ボタン */
+        .comic-btn {
+            background-color: var(--jojo-yellow);
+            border: 4px solid #000;
+            box-shadow: 6px 6px 0px #000;
+            transform: skewX(-5deg);
+            transition: all 0.1s ease;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .comic-btn:hover {
+            transform: skewX(-5deg) translate(2px, 2px);
+            box-shadow: 4px 4px 0px #000;
+            background-color: #fff;
+            color: #000;
+        }
+        .comic-btn:active {
+            transform: skewX(-5deg) translate(6px, 6px);
+            box-shadow: 0px 0px 0px #000;
+        }
+        .btn-inner {
+            transform: skewX(5deg); /* テキストは真っ直ぐに */
+            display: inline-block;
+        }
+
+        .btn-easy { background-color: var(--jojo-green); }
+        .btn-normal { background-color: var(--jojo-cyan); }
+        .btn-hard { background-color: var(--jojo-pink); color: #fff; }
+
+        /* タイトル文字 */
+        .comic-title {
+            font-family: 'Noto Serif JP', serif;
+            font-weight: 900;
+            color: var(--jojo-yellow);
+            text-shadow: 
+                3px 3px 0 #000,
+                -1px -1px 0 #000,  
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000,
+                6px 6px 0 var(--jojo-pink);
+            letter-spacing: 2px;
+            transform: scaleY(1.2);
+        }
+
+        /* 入力フィールド */
+        .comic-input {
+            background-color: #f0f0f0;
+            border: 4px solid #000;
+            box-shadow: inset 4px 4px 0 rgba(0,0,0,0.1);
+            font-weight: 900;
+            transition: all 0.2s;
+        }
+        .comic-input:focus {
+            outline: none;
+            background-color: #fff;
+            border-color: var(--jojo-pink);
+            box-shadow: inset 4px 4px 0 rgba(255,0,127,0.1), 0 0 10px var(--jojo-pink);
+        }
+
+        /* 吹き出し風 */
+        .speech-bubble {
+            position: relative;
+            background: #fff;
+            border: 4px solid #000;
+            border-radius: 20px;
+            padding: 15px;
+        }
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 30px;
+            border-width: 20px 20px 0 0;
+            border-style: solid;
+            border-color: #000 transparent transparent transparent;
+        }
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -13px;
+            left: 34px;
+            border-width: 14px 14px 0 0;
+            border-style: solid;
+            border-color: #fff transparent transparent transparent;
+        }
+
+        /* ロード用スピナー */
+        .loader {
+            border: 4px solid #000;
+            border-left-color: var(--jojo-pink);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* プログレスバー */
+        .progress-container { border: 4px solid #000; background: #fff; height: 20px; }
+        .progress-bar { background: repeating-linear-gradient(45deg, var(--jojo-yellow), var(--jojo-yellow) 10px, var(--jojo-pink) 10px, var(--jojo-pink) 20px); transition: width 0.3s; height: 100%; }
+
+        /* 強調テキスト */
+        .text-stroke {
+            -webkit-text-stroke: 1px #000;
+            color: #fff;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <!-- 背景エフェクト -->
+    <div class="speed-lines"></div>
+    <div class="gogogo gogo-1">ゴゴゴゴ</div>
+    <div class="gogogo gogo-2">ドドド</div>
+    <div class="gogogo gogo-3">ズギュウゥン</div>
+    <div class="gogogo gogo-4">ゴォォォ</div>
+
+    <!-- メインコンテナ -->
+    <div id="app-container" class="comic-box w-full max-w-2xl overflow-hidden p-2">
+        <!-- コンテンツは動的に挿入されます -->
+    </div>
+
+    <script>
+        // Gemini API 連携の設定
+        const apiKey = "";
+        
+        async function callGeminiAPI(promptText) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: promptText }] }],
+                systemInstruction: { 
+                    parts: [{ text: "あなたは「ジョジョの奇妙な冒険」の熱狂的なファンであり、スピードワゴン財団の優秀な研究員です。漫画特有のセリフ回し（「〜じゃあないか！」「〜ッ！」「ふるえるぞハート！燃えつきるほどヒート！」など）や擬音語を交えて、熱苦しく、コミカルに回答してください。" }] 
+                }
+            };
+
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            let lastError = null;
+
+            for (let i = 0; i <= delays.length; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "データの取得に失敗したッ！";
+                } catch (error) {
+                    lastError = error;
+                    if (i < delays.length) await new Promise(resolve => setTimeout(resolve, delays[i]));
+                }
+            }
+            console.error("Gemini API Error:", lastError);
+            return "敵スタンドの攻撃を受けているッ！通信が切断された！";
+        }
+
+        // 難易度別クイズデータ
+        const allQuizData = {
+            easy: [
+                { part: "第1部", question: "吸血鬼を生み出す、骨針が飛び出す不気味なお面を何という？", answers: ["石仮面", "いしかめん"] },
+                { part: "第3部", question: "空条承太郎のスタンドの名前は「スター・〇〇〇〇」。何？", answers: ["プラチナ", "ぷらちな"] },
+                { part: "第1・2部", question: "ツェペリ男爵らが使う、特殊な呼吸法によって生み出される太陽と同じ波長のエネルギーを何という？", answers: ["波紋", "はもん"] },
+                { part: "第2部", question: "「柱の男」たちのリーダー格で、究極生命体（アルティメット・シイング）となったのは誰？", answers: ["カーズ", "かーず"] },
+                { part: "第3部", question: "ディオ・ブランドー（DIO）の時を止めるスタンドの名前は？", answers: ["ザ・ワールド", "ザワールド", "ざわーるど", "世界"] }
+            ],
+            normal: [
+                { part: "第4部", question: "杜王町の漫画家、岸辺露伴のスタンドによって対象者が変えられるものは何？", answers: ["本", "ほん", "マンガ", "漫画"] },
+                { part: "第5部", question: "グイード・ミスタが「縁起が悪い」として極端に避けている数字は？（数字で入力）", answers: ["4", "四", "４"] },
+                { part: "第5部", question: "ブローノ・ブチャラティのスタンド「スティッキィ・フィンガーズ」が対象に取り付けるものは何？", answers: ["ジッパー", "じっぱー", "チャック", "ファスナー"] },
+                { part: "第6部", question: "空条徐倫の胸にあるタトゥーの模様は「蝶」と何？", answers: ["短剣", "剣", "ナイフ", "たんけん", "つるぎ", "ダガー"] },
+                { part: "第4部", question: "吉良吉影のスタンド「キラークイーン」の能力は、触れたものを何に変えること？", answers: ["爆弾", "ばくだん", "ボム"] }
+            ],
+            hard: [
+                { part: "第3部", question: "ダニエル・J・ダービーのスタンド「オシリス神」は、ギャンブルの敗者の何をコインに変える？", answers: ["魂", "たましい", "ソウル"] },
+                { part: "第5部", question: "プロシュートのスタンド「ザ・グレイトフル・デッド」の老化能力を遅らせるためには、身体の何を下げればよい？", answers: ["体温", "たいおん", "温度", "熱"] },
+                { part: "第6部", question: "プッチ神父が緑色の赤ん坊と融合して発現した、重力を操るスタンドの名前は？", answers: ["c-moon", "cmoon", "c-ムーン", "シームーン"] },
+                { part: "第7部", question: "ジャイロ・ツェペリのファーストネームは「〇〇〇〇・カエサル・ツェペリ」。〇は？", answers: ["ユリウス", "ゆりうす"] },
+                { part: "第8部", question: "定助が食べた途端、前歯から中身が飛び出した杜王町名物のお菓子は「〇〇〇団子」？", answers: ["ごま蜜", "ゴマ蜜", "ごまみつ", "胡麻蜜"] }
+            ]
+        };
+
+        let currentQuizList = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        const appContainer = document.getElementById('app-container');
+
+        const normalizeString = (str) => str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).toLowerCase().replace(/\s+/g, '');
+
+        // スタート画面（難易度選択）
+        function renderStartScreen() {
+            appContainer.innerHTML = `
+                <div class="p-8 text-center bg-white border-4 border-black m-2">
+                    <h1 class="text-5xl md:text-6xl comic-title mb-6 mt-4">JOJO TYPING<br>BATTLE</h1>
+                    
+                    <div class="bg-black text-white p-3 font-bold text-xl mb-8 transform -skew-x-6 border-l-8 border-r-8 border-[var(--jojo-pink)]">
+                        君の「記憶（ディスク）」を試す時が来たッ！
+                    </div>
+
+                    <p class="text-lg font-bold mb-6">難易度（モード）を選択しろッ！</p>
+                    
+                    <div class="flex flex-col space-y-4 max-w-sm mx-auto">
+                        <button onclick="startQuiz('easy')" class="comic-btn btn-easy py-4 text-2xl">
+                            <span class="btn-inner">波紋疾走 (EASY)</span>
+                        </button>
+                        <button onclick="startQuiz('normal')" class="comic-btn btn-normal py-4 text-2xl">
+                            <span class="btn-inner">スタンド使い (NORMAL)</span>
+                        </button>
+                        <button onclick="startQuiz('hard')" class="comic-btn btn-hard py-4 text-2xl">
+                            <span class="btn-inner">天国への到達 (HARD)</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // クイズ開始
+        function startQuiz(difficulty) {
+            currentQuizList = allQuizData[difficulty];
+            currentQuestionIndex = 0;
+            score = 0;
+            renderQuestion();
+        }
+
+        // 問題画面
+        function renderQuestion() {
+            const currentQuiz = currentQuizList[currentQuestionIndex];
+            const progressPct = ((currentQuestionIndex) / currentQuizList.length) * 100;
+            
+            appContainer.innerHTML = `
+                <div class="p-4 bg-white min-h-[500px] flex flex-col relative">
+                    <!-- ヘッダー部分 -->
+                    <div class="flex justify-between items-center mb-4 border-b-4 border-black pb-2">
+                        <div class="bg-black text-white font-bold px-4 py-1 text-xl transform skew-x-[-10deg]">
+                            <span class="inline-block transform skew-x-[10deg]">BATTLE ${currentQuestionIndex + 1}</span>
+                        </div>
+                        <div class="font-bold text-xl text-[var(--jojo-purple)] tracking-widest">${currentQuiz.part}</div>
+                    </div>
+
+                    <div class="progress-container mb-6 w-full">
+                        <div class="progress-bar" style="width: ${progressPct}%"></div>
+                    </div>
+                    
+                    <!-- 問題文（吹き出し風） -->
+                    <div class="speech-bubble mb-8 shadow-md">
+                        <h2 class="text-2xl font-black leading-tight">
+                            ${currentQuiz.question}
+                        </h2>
+                    </div>
+                    
+                    <!-- Gemini ヒント -->
+                    <div id="hint-container" class="mb-6 flex justify-end">
+                        <button onclick="generateHint()" class="bg-[var(--jojo-cyan)] border-2 border-black font-bold px-4 py-2 shadow-[4px_4px_0_#000] hover:bg-white hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#000] transition-all">
+                            ✨ SPW財団にヒントを通信
+                        </button>
+                        <div id="hint-text" class="hidden w-full mt-3 p-4 bg-gray-100 border-4 border-black font-bold text-lg"></div>
+                    </div>
+                    
+                    <!-- 入力エリア -->
+                    <div class="mt-auto relative p-4 bg-[var(--jojo-purple)] border-4 border-black">
+                        <label class="block font-black text-white text-stroke mb-2 text-xl tracking-wider">答えを入力しろッ！</label>
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <input type="text" id="answer-input" class="comic-input flex-grow p-4 text-2xl text-center" placeholder="オラオラ..." autocomplete="off" onkeydown="if(event.key === 'Enter') processAnswer()">
+                            <button onclick="processAnswer()" class="comic-btn py-4 px-8 text-2xl bg-[var(--jojo-yellow)] text-black">
+                                <span class="btn-inner">ブチ込むッ！</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                const inputEl = document.getElementById('answer-input');
+                if(inputEl) inputEl.focus();
+            }, 100);
+        }
+
+        // ヒント生成機能
+        async function generateHint() {
+            const hintBtn = document.querySelector('#hint-container button');
+            const hintText = document.getElementById('hint-text');
+            const currentQuiz = currentQuizList[currentQuestionIndex];
+            
+            hintBtn.disabled = true;
+            hintBtn.innerHTML = '<span class="loader align-middle mr-2"></span>ハーミット・パープル念写中...';
+            hintText.classList.remove('hidden');
+            hintText.innerHTML = '<span class="animate-pulse">情報を受信中だッ！</span>';
+
+            const prompt = `問題：「${currentQuiz.question}」\nこの問題のヒントを1〜2文で生成しろ。正解の「${currentQuiz.answers[0]}」という言葉は絶対に出すなよ！読者を煽りつつ熱くヒントを出せッ！`;
+            const response = await callGeminiAPI(prompt);
+            
+            hintText.innerHTML = response.replace(/\n/g, '<br>');
+            hintBtn.style.display = 'none';
+        }
+
+        // 答えの処理
+        function processAnswer() {
+            const inputEl = document.getElementById('answer-input');
+            const userInputValue = inputEl.value.trim();
+            
+            if (!userInputValue) {
+                inputEl.classList.add('border-red-500', 'bg-red-100');
+                inputEl.placeholder = "文字を打ち込まないと始まらねえぜッ！";
+                setTimeout(() => inputEl.classList.remove('border-red-500', 'bg-red-100'), 1000);
+                return;
+            }
+            
+            const currentQuiz = currentQuizList[currentQuestionIndex];
+            const normalizedInput = normalizeString(userInputValue);
+            
+            const isCorrect = currentQuiz.answers.some(ans => normalizeString(ans) !== "" && normalizedInput.includes(normalizeString(ans)));
+
+            if (isCorrect) score++;
+
+            renderFeedback(isCorrect, userInputValue, currentQuiz.answers[0]);
+        }
+
+        // フィードバック画面
+        function renderFeedback(isCorrect, userInput, correctAnswerStr) {
+            const statusText = isCorrect ? 'メメタァ！(正解)' : '貧弱ゥ！(不正解)';
+            const bgPattern = isCorrect ? 'bg-[var(--jojo-yellow)]' : 'bg-gray-300';
+            const resultColor = isCorrect ? 'text-[var(--jojo-pink)]' : 'text-blue-600';
+
+            appContainer.innerHTML = `
+                <div class="p-6 bg-white min-h-[500px] flex flex-col relative border-8 border-black">
+                    <div class="${bgPattern} border-4 border-black p-4 text-center transform -skew-y-2 shadow-[8px_8px_0_#000] mb-8 relative z-10">
+                        <div class="font-black text-4xl ${resultColor} text-stroke">${statusText}</div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="border-4 border-black p-4 bg-gray-100 relative">
+                            <div class="absolute -top-3 left-2 bg-black text-white px-2 font-bold text-xs">お前の入力</div>
+                            <div class="text-xl font-bold break-all mt-2 text-gray-700">「${userInput}」</div>
+                        </div>
+                        <div class="border-4 border-black p-4 bg-[var(--jojo-cyan)] relative">
+                            <div class="absolute -top-3 left-2 bg-black text-white px-2 font-bold text-xs">真実（こたえ）</div>
+                            <div class="text-2xl font-black break-all mt-2 text-black">${correctAnswerStr}</div>
+                        </div>
+                    </div>
+
+                    <!-- Gemini 解説機能 -->
+                    <div id="explanation-container" class="mb-6 w-full relative z-20">
+                        <button onclick="generateExplanation(${isCorrect}, '${userInput}', '${correctAnswerStr}')" class="w-full comic-btn py-3 bg-[var(--jojo-pink)] text-white text-lg">
+                            <span class="btn-inner">✨ SPW財団に原作解説を要求するッ！</span>
+                        </button>
+                        <div id="explanation-text" class="hidden mt-4 p-4 border-4 border-black bg-white font-bold text-md leading-relaxed shadow-[6px_6px_0_#000] max-h-60 overflow-y-auto"></div>
+                    </div>
+                    
+                    <button onclick="nextQuestion()" class="comic-btn py-4 mt-auto text-2xl w-full bg-black text-white hover:bg-gray-800">
+                        <span class="btn-inner">${currentQuestionIndex < currentQuizList.length - 1 ? '次の戦いへ向かうッ！' : '結果（リザルト）を見るッ！'}</span>
+                    </button>
+                </div>
+            `;
+            
+            // エンターキーで次へ (解説生成中は発火しないように注意が必要だが簡易的に実装)
+            document.addEventListener('keydown', function nextOnEnter(e) {
+                if (e.key === 'Enter') {
+                    document.removeEventListener('keydown', nextOnEnter);
+                    nextQuestion();
+                }
+            });
+        }
+
+        // 解説生成機能
+        async function generateExplanation(isCorrect, userInput, correctAnswerStr) {
+            const explBtn = document.querySelector('#explanation-container button');
+            const explText = document.getElementById('explanation-text');
+            const currentQuiz = currentQuizList[currentQuestionIndex];
+            
+            explBtn.disabled = true;
+            explBtn.innerHTML = '<span class="btn-inner"><span class="loader align-middle mr-2"></span> ヘブンズ・ドアーで読み込み中...</span>';
+            explText.classList.remove('hidden');
+            explText.innerHTML = '<span class="animate-pulse">SPW財団のデータベースにアクセスしている...</span>';
+
+            const resultStr = isCorrect ? '見事正解した' : '残念ながら間違えた';
+            const prompt = `問題：「${currentQuiz.question}」\n正解：「${correctAnswerStr}」\nユーザーの入力：「${userInput}」\n\nプレイヤーはこの問題に${resultStr}。この問題の背景や原作の熱い展開、マニアックな小ネタを解説してくれッ！プレイヤーを称賛するか、ゲキを飛ばすんだ！`;
+            const response = await callGeminiAPI(prompt);
+            
+            explText.innerHTML = response.replace(/\n/g, '<br>');
+            explBtn.style.display = 'none';
+        }
+
+        // 次へ
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < currentQuizList.length) {
+                renderQuestion();
+            } else {
+                renderResult();
+            }
+        }
+
+        // 結果画面
+        function renderResult() {
+            const percentage = (score / currentQuizList.length) * 100;
+            let rank = "";
+            let rankClass = "";
+            let message = "";
+
+            if (percentage === 100) {
+                rank = "星の白金 (パーフェクト)";
+                rankClass = "text-[var(--jojo-pink)]";
+                message = "スゲーッ 爽やかな気分だぜ 新しいパンツをはいたばかりの正月元旦の朝のよーによォ〜ッ！";
+            } else if (percentage >= 60) {
+                rank = "スタンド使い (クリア)";
+                rankClass = "text-[var(--jojo-cyan)]";
+                message = "グレートですよこいつはァ。なかなかの記憶力だぜ。";
+            } else {
+                rank = "マヌケは見つかったようだな (失敗)";
+                rankClass = "text-blue-800";
+                message = "あァァァんまりだァァアァ！出直してきなッ！";
+            }
+
+            appContainer.innerHTML = `
+                <div class="p-8 bg-white border-4 border-black min-h-[500px] flex flex-col items-center justify-center relative text-center">
+                    <div class="absolute top-4 left-4 bg-black text-white px-3 py-1 font-bold text-sm transform -skew-x-12">BATTLE FINISHED</div>
+                    
+                    <h2 class="text-4xl font-black mb-8 border-b-8 border-[var(--jojo-yellow)] pb-2 transform -skew-y-3 shadow-sm inline-block">最終評価（リザルト）</h2>
+                    
+                    <div class="bg-[var(--jojo-purple)] text-white border-4 border-black p-6 mb-6 shadow-[8px_8px_0_#000] transform skew-x-3 w-full max-w-sm">
+                        <div class="text-2xl font-bold mb-2 text-stroke">正解数</div>
+                        <div class="text-6xl font-black">
+                            ${score} <span class="text-3xl">/ ${currentQuizList.length}</span>
+                        </div>
+                    </div>
+
+                    <div class="font-black text-2xl mt-4 ${rankClass} text-stroke mb-4 bg-gray-100 border-4 border-black p-2 transform -skew-x-6 w-full">
+                        RANK: ${rank}
+                    </div>
+
+                    <div class="text-lg font-bold mb-8 bg-white border-4 border-black p-4 relative speech-bubble text-left w-full">
+                        「${message}」
+                    </div>
+                    
+                    <button onclick="renderStartScreen()" class="comic-btn py-5 px-10 text-2xl bg-[var(--jojo-yellow)] w-full">
+                        <span class="btn-inner">もう一度挑戦するッ！</span>
+                    </button>
+                </div>
+            `;
+        }
+
+        // 初期化
+        renderStartScreen();
+    </script>
+</body>
+</html>
